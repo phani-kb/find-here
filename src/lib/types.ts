@@ -5,6 +5,15 @@ export type LatLng = {
 
 export type Provider = "google" | "osm";
 
+export class ProviderError extends Error {
+  constructor(
+    message: string,
+    readonly status: number,
+  ) {
+    super(message);
+  }
+}
+
 export type MapLink = {
   href: string;
   label: string;
