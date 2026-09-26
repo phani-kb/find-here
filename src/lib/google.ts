@@ -84,7 +84,7 @@ async function requestGoogle(
 
 export async function searchGoogle(
   center: LatLng,
-  radiusMeters: number,
+  radiusMeters: number = 5_000,
 ): Promise<PlaceResult[]> {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {

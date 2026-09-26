@@ -14,6 +14,21 @@ export const MILES_TO_METERS = (miles: number) =>
 
 export const METERS_TO_MILES = (meters: number) => meters / METERS_PER_MILE;
 
+export function isValidLatLng(value: unknown): value is LatLng {
+  if (typeof value !== "object" || value === null) return false;
+  const { lat, lng } = value as Record<string, unknown>;
+  return (
+    typeof lat === "number" &&
+    typeof lng === "number" &&
+    Number.isFinite(lat) &&
+    Number.isFinite(lng) &&
+    lat >= -90 &&
+    lat <= 90 &&
+    lng >= -180 &&
+    lng <= 180
+  );
+}
+
 const EARTH_RADIUS_METERS = 6_371_000;
 
 export function haversineMeters(a: LatLng, b: LatLng): number {
