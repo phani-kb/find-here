@@ -1,6 +1,17 @@
-import { ProviderError } from "@/lib/types";
+import { haversineMeters } from "@/lib/geo";
+import { type LatLng, type PlaceResult, ProviderError } from "@/lib/types";
 
 const NEARBY_URL = "https://places.googleapis.com/v1/places:searchNearby";
+const PLACE_FIELD_MASK = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
+  "places.location",
+  "places.rating",
+  "places.userRatingCount",
+  "places.primaryType",
+  "places.googleMapsUri",
+].join(",");
 
 type GooglePlace = {
   id?: string;
@@ -17,6 +28,31 @@ type GoogleResponse = {
   places?: GooglePlace[];
   error?: { message?: string };
 };
+
+function toPlaceResult(place: GooglePlace, center: LatLng): PlaceResult | null {
+  const { latitude: lat, longitude: lng } = place.location ?? {};
+  if (typeof lat !== "number" || typeof lng !== "number") return null;
+
+  const location = { lat, lng };
+  return {
+    id: place.id ?? `${lat},${lng}`,
+    name: place.displayName?.text ?? "Unnamed place",
+    address: place.formattedAddress ?? "",
+    location,
+    distanceMeters: haversineMeters(center, location),
+    rating: place.rating,
+    userRatingCount: place.userRatingCount,
+    primaryType: place.primaryType,
+    ...(place.googleMapsUri
+      ? {
+          mapLink: {
+            href: place.googleMapsUri,
+            label: "Open in Maps",
+          },
+        }
+      : {}),
+  };
+}
 
 async function requestGoogle(
   url: string,
