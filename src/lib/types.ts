@@ -45,3 +45,13 @@ export type SearchResponse = {
   count: number;
   results: PlaceResult[];
 };
+
+export type GeocodeRequest = {
+  query: string;
+  provider?: Provider;
+};
+
+export type GeocodeResponse = {
+  label: string;
+  center: LatLng;
+};
