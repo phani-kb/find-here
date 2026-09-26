@@ -1,5 +1,10 @@
 import { haversineMeters, sortByDistance } from "@/lib/geo";
-import { type LatLng, type PlaceResult, ProviderError } from "@/lib/types";
+import {
+  type GeocodeResponse,
+  type LatLng,
+  type PlaceResult,
+  ProviderError,
+} from "@/lib/types";
 
 const NEARBY_URL = "https://places.googleapis.com/v1/places:searchNearby";
 const TEXT_URL = "https://places.googleapis.com/v1/places:searchText";
@@ -84,6 +89,32 @@ async function requestGoogle(
     );
   }
   return data;
+}
+
+// Geocoding API returns coordinates + address but not a label unlike the places text search
+export async function geocodeGoogle(query: string): Promise<GeocodeResponse> {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey) {
+    throw new ProviderError("Server is missing GOOGLE_MAPS_API_KEY.", 500);
+  }
+
+  const data = await requestGoogle(
+    TEXT_URL,
+    { textQuery: query, pageSize: 1 },
+    "places.displayName,places.formattedAddress,places.location",
+    apiKey,
+  );
+
+  const place = data.places?.[0];
+  const { latitude: lat, longitude: lng } = place?.location ?? {};
+  if (typeof lat !== "number" || typeof lng !== "number") {
+    throw new ProviderError(`No location found for "${query}".`, 404);
+  }
+
+  return {
+    center: { lat, lng },
+    label: place?.displayName?.text ?? place?.formattedAddress ?? query,
+  };
 }
 
 export async function searchGoogle(
