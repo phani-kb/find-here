@@ -1,7 +1,8 @@
-import { haversineMeters } from "@/lib/geo";
+import { haversineMeters, sortByDistance } from "@/lib/geo";
 import { type LatLng, type PlaceResult, ProviderError } from "@/lib/types";
 
 const NEARBY_URL = "https://places.googleapis.com/v1/places:searchNearby";
+const MAX_RESULTS = 20;
 const PLACE_FIELD_MASK = [
   "places.id",
   "places.displayName",
@@ -79,4 +80,46 @@ async function requestGoogle(
     );
   }
   return payload;
+}
+
+export async function searchGoogle(
+  center: LatLng,
+  radiusMeters: number,
+): Promise<PlaceResult[]> {
+  const apiKey = process.env.GOOGLE_MAPS_API_KEY;
+  if (!apiKey) {
+    throw new ProviderError("Server is missing GOOGLE_MAPS_API_KEY.", 500);
+  }
+
+  const payload = await requestGoogle(
+    NEARBY_URL,
+    {
+      maxResultCount: MAX_RESULTS,
+      rankPreference: "DISTANCE",
+      locationRestriction: {
+        circle: {
+          center: { latitude: center.lat, longitude: center.lng },
+          radius: radiusMeters,
+        },
+      },
+    },
+    PLACE_FIELD_MASK,
+    apiKey,
+  );
+  return keepInCircle(payload.places ?? [], center, radiusMeters);
+}
+
+function keepInCircle(
+  places: GooglePlace[],
+  center: LatLng,
+  radiusMeters: number,
+): PlaceResult[] {
+  const seen = new Set<string>();
+  return sortByDistance(
+    places
+      .map((place) => toPlaceResult(place, center))
+      .filter((place): place is PlaceResult => place !== null)
+      .filter((place) => place.distanceMeters <= radiusMeters)
+      .filter((place) => !seen.has(place.id) && !!seen.add(place.id)),
+  ).slice(0, MAX_RESULTS);
 }
