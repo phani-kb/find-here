@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { center, radiusMeters } = body;
+  const { center, radiusMeters, keyword } = body;
   if (!isValidLatLng(center)) {
     return NextResponse.json(
       { error: "`center` must be a valid { lat, lng }." },
@@ -32,6 +32,8 @@ export async function POST(request: Request) {
       { status: 400 },
     );
   }
+
+  const trimmedKeyword = typeof keyword === "string" ? keyword.trim() : "";
 
   try {
     const results = await searchGoogle(center, radiusMeters);
