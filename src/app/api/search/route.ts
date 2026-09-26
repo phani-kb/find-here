@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 
-import { isValidLatLng } from "@/lib/geo";
+import { isValidLatLng, MAX_RADIUS_METERS } from "@/lib/geo";
 import { searchGoogle } from "@/lib/google";
 import { ProviderError, type SearchRequest } from "@/lib/types";
 
@@ -12,19 +12,32 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Invalid JSON body." }, { status: 400 });
   }
 
-  const { center } = body;
+  const { center, radiusMeters } = body;
   if (!isValidLatLng(center)) {
     return NextResponse.json(
       { error: "`center` must be a valid { lat, lng }." },
       { status: 400 },
     );
   }
+  if (
+    typeof radiusMeters !== "number" ||
+    !Number.isFinite(radiusMeters) ||
+    radiusMeters <= 0 ||
+    radiusMeters > MAX_RADIUS_METERS
+  ) {
+    return NextResponse.json(
+      {
+        error: `\`radiusMeters\` must be between 1 and ${MAX_RADIUS_METERS} (Google Places limit).`,
+      },
+      { status: 400 },
+    );
+  }
 
   try {
-    const results = await searchGoogle(center, 5_000);
+    const results = await searchGoogle(center, radiusMeters);
     return NextResponse.json({
       center,
-      radiusMeters: 5_000,
+      radiusMeters,
       count: results.length,
       results,
     });
