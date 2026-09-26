@@ -43,7 +43,12 @@ export async function POST(request: Request) {
       : 0;
 
   try {
-    const results = await searchGoogle(center, radiusMeters);
+    const results = await searchGoogle(
+      center,
+      radiusMeters,
+      trimmedKeyword,
+      validMinRating,
+    );
     return NextResponse.json({
       center,
       radiusMeters,

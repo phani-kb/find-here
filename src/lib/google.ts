@@ -2,6 +2,9 @@ import { haversineMeters, sortByDistance } from "@/lib/geo";
 import { type LatLng, type PlaceResult, ProviderError } from "@/lib/types";
 
 const NEARBY_URL = "https://places.googleapis.com/v1/places:searchNearby";
+const TEXT_URL = "https://places.googleapis.com/v1/places:searchText";
+const PAGE_SIZE = 20;
+const MAX_PAGES = 3;
 const MAX_RESULTS = 20;
 const PLACE_FIELD_MASK = [
   "places.id",
@@ -27,6 +30,7 @@ type GooglePlace = {
 
 type GoogleResponse = {
   places?: GooglePlace[];
+  nextPageToken?: string;
   error?: { message?: string };
 };
 
@@ -71,42 +75,73 @@ async function requestGoogle(
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  const payload = (await response.json()) as GoogleResponse;
+  const data = (await response.json()) as GoogleResponse;
   if (!response.ok) {
     throw new ProviderError(
-      payload.error?.message ??
+      data.error?.message ??
         `Places API request failed (${response.status}).`,
       response.status,
     );
   }
-  return payload;
+  return data;
 }
 
 export async function searchGoogle(
   center: LatLng,
   radiusMeters: number = 5_000,
+  keyword: string = "",
+  minRating: number = 0,
 ): Promise<PlaceResult[]> {
   const apiKey = process.env.GOOGLE_MAPS_API_KEY;
   if (!apiKey) {
     throw new ProviderError("Server is missing GOOGLE_MAPS_API_KEY.", 500);
   }
 
-  const payload = await requestGoogle(
-    NEARBY_URL,
-    {
-      maxResultCount: MAX_RESULTS,
-      rankPreference: "DISTANCE",
-      locationRestriction: {
-        circle: {
-          center: { latitude: center.lat, longitude: center.lng },
-          radius: radiusMeters,
+  if (!keyword) {
+    const data = await requestGoogle(
+      NEARBY_URL,
+      {
+        maxResultCount: MAX_RESULTS,
+        rankPreference: "DISTANCE",
+        locationRestriction: {
+          circle: {
+            center: { latitude: center.lat, longitude: center.lng },
+            radius: radiusMeters,
+          },
         },
       },
+      PLACE_FIELD_MASK,
+      apiKey,
+    );
+    return keepInCircle(data.places ?? [], center, radiusMeters);
+  }
+
+  const textBody = {
+    textQuery: keyword,
+    pageSize: PAGE_SIZE,
+    ...(minRating > 0 ? { minRating } : {}),
+    locationBias: {
+      circle: {
+        center: { latitude: center.lat, longitude: center.lng },
+        radius: radiusMeters,
+      },
     },
-    PLACE_FIELD_MASK,
-    apiKey,
-  );
-  return keepInCircle(payload.places ?? [], center, radiusMeters);
+  };
+
+  const places: GooglePlace[] = [];
+  let pageToken: string | undefined;
+  for (let page = 0; page < MAX_PAGES; page += 1) {
+    const data = await requestGoogle(
+      TEXT_URL,
+      { ...textBody, ...(pageToken ? { pageToken } : {}) },
+      `${PLACE_FIELD_MASK},nextPageToken`,
+      apiKey,
+    );
+    places.push(...(data.places ?? []));
+    pageToken = data.nextPageToken;
+    if (!pageToken) break;
+  }
+  return keepInCircle(places, center, radiusMeters);
 }
 
 function keepInCircle(
