@@ -3,8 +3,7 @@
 import { useState } from "react";
 import type { FormEvent } from "react";
 
-const RADIUS_OPTIONS_MILES = [1, 2, 3, 5, 10, 15, 20, 25, 30] as const;
-const DEFAULT_RADIUS_MILES = 5;
+import { DEFAULT_RADIUS_MILES, RADIUS_OPTIONS_MILES } from "@/lib/geo";
 
 export default function SearchApp() {
   const [query, setQuery] = useState("");
