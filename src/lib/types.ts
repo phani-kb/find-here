@@ -5,6 +5,11 @@ export type LatLng = {
 
 export type Provider = "google" | "osm";
 
+export type MapLink = {
+  href: string;
+  label: string;
+};
+
 export type PlaceResult = {
   id: string;
   name: string;
@@ -13,6 +18,8 @@ export type PlaceResult = {
   distanceMeters: number;
   rating?: number;
   userRatingCount?: number;
+  primaryType?: string;
+  mapLink?: MapLink;
 };
 
 export type SearchRequest = {
