@@ -1,18 +1,126 @@
 "use client";
 
-import { useState } from "react";
+import { useCallback, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
-import { DEFAULT_RADIUS_MILES, RADIUS_OPTIONS_MILES } from "@/lib/geo";
+import {
+  DEFAULT_RADIUS_MILES,
+  MILES_TO_METERS,
+  RADIUS_OPTIONS_MILES,
+} from "@/lib/geo";
+import type {
+  GeocodeResponse,
+  LatLng,
+  PlaceResult,
+  Provider,
+  SearchRequest,
+  SearchResponse,
+} from "@/lib/types";
+import { DEFAULT_PROVIDER } from "@/lib/types";
+
+type Status = "idle" | "loading" | "ready" | "error";
+
+async function fetchSearch(
+  center: LatLng,
+  radiusMeters: number,
+  provider: Provider,
+  signal: AbortSignal,
+): Promise<SearchResponse> {
+  const body: SearchRequest = { center, radiusMeters, provider };
+  const response = await fetch("/api/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+    signal,
+  });
+  const data = (await response.json()) as SearchResponse & { error?: string };
+  if (!response.ok) {
+    throw new Error(data.error ?? "Search failed.");
+  }
+  return data;
+}
+
+function isAbortError(error: unknown): boolean {
+  return error instanceof DOMException && error.name === "AbortError";
+}
 
 export default function SearchApp() {
-  const [query, setQuery] = useState("");
-  const [searchedQuery, setSearchedQuery] = useState("");
+  const [center, setCenter] = useState<LatLng | null>(null);
+  const [centerLabel, setCenterLabel] = useState<string | null>(null);
   const [radiusMiles, setRadiusMiles] = useState<number>(DEFAULT_RADIUS_MILES);
+  const [provider] = useState<Provider>(DEFAULT_PROVIDER);
+  const [query, setQuery] = useState("");
+  const [results, setResults] = useState<PlaceResult[]>([]);
+  const [status, setStatus] = useState<Status>("idle");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const handleSubmit = (event: FormEvent) => {
+  const controllerRef = useRef<AbortController | null>(null);
+
+  const requestSearch = useCallback(
+    async (nextCenter: LatLng, nextRadiusMeters: number) => {
+      controllerRef.current?.abort();
+      const controller = new AbortController();
+      controllerRef.current = controller;
+      setStatus("loading");
+      setError(null);
+      try {
+        const data = await fetchSearch(
+          nextCenter,
+          nextRadiusMeters,
+          provider,
+          controller.signal,
+        );
+        setResults(data.results);
+        setStatus("ready");
+      } catch (err) {
+        if (isAbortError(err)) return;
+        setError(err instanceof Error ? err.message : "Search failed.");
+        setStatus("error");
+      }
+    },
+    [provider],
+  );
+
+  const updateCenter = useCallback((next: LatLng, label: string) => {
+    setCenter(next);
+    setCenterLabel(label);
+  }, []);
+
+  const handleSubmit = async (event: FormEvent) => {
     event.preventDefault();
-    setSearchedQuery(query.trim());
+    const trimmed = query.trim();
+    if (!trimmed) return;
+
+    setBusy(true);
+    setError(null);
+    try {
+      const response = await fetch("/api/geocode", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ query: trimmed, provider }),
+      });
+      const data = (await response.json()) as GeocodeResponse & {
+        error?: string;
+      };
+      if (!response.ok) {
+        throw new Error(data.error ?? "Location not found.");
+      }
+      updateCenter(data.center, data.label);
+      requestSearch(data.center, MILES_TO_METERS(radiusMiles));
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Location not found.");
+      setStatus("error");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const canSearch = center !== null && !busy;
+
+  const handleSearchClick = () => {
+    if (center === null) return;
+    requestSearch(center, MILES_TO_METERS(radiusMiles));
   };
 
   return (
@@ -31,7 +139,8 @@ export default function SearchApp() {
           />
           <button
             type="submit"
-            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700"
+            disabled={busy}
+            className="rounded-md bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
           >
             Search
           </button>
@@ -55,15 +164,15 @@ export default function SearchApp() {
 
       <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
         <aside className="h-56 shrink-0 border-b border-zinc-200 bg-white p-4 md:h-auto md:w-80 md:border-b-0 md:border-r">
-          {searchedQuery ? (
-            <p className="text-sm text-zinc-600">
-              Results for &ldquo;{searchedQuery}&rdquo; within {radiusMiles} mi
-            </p>
-          ) : (
-            <p className="text-sm text-zinc-600">
-              Search for a city, address, or landmark to see places nearby.
-            </p>
-          )}
+          <p className="text-sm text-zinc-600">
+            {status === "idle"
+              ? "Search for a city, address, or landmark to see places nearby."
+              : status === "loading"
+                ? "Searching..."
+                : status === "error"
+                  ? error
+                  : `Found ${results.length} place(s) within ${radiusMiles} mi of ${centerLabel}.`}
+          </p>
         </aside>
 
         <main className="relative flex-1 bg-zinc-100">

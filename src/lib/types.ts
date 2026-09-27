@@ -5,6 +5,8 @@ export type LatLng = {
 
 export type Provider = "google" | "osm";
 
+export const DEFAULT_PROVIDER: Provider = "google";
+
 export class ProviderError extends Error {
   constructor(
     message: string,
