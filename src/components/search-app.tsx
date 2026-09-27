@@ -8,6 +8,7 @@ import {
   MILES_TO_METERS,
   RADIUS_OPTIONS_MILES,
 } from "@/lib/geo";
+import ResultsPanel from "@/components/results-panel";
 import type {
   GeocodeResponse,
   LatLng,
@@ -116,13 +117,6 @@ export default function SearchApp() {
     }
   };
 
-  const canSearch = center !== null && !busy;
-
-  const handleSearchClick = () => {
-    if (center === null) return;
-    requestSearch(center, MILES_TO_METERS(radiusMiles));
-  };
-
   return (
     <div className="flex h-dvh flex-col">
       <header className="flex flex-wrap items-center gap-2 border-b border-zinc-200 bg-white px-4 py-3">
@@ -163,16 +157,13 @@ export default function SearchApp() {
       </header>
 
       <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
-        <aside className="h-56 shrink-0 border-b border-zinc-200 bg-white p-4 md:h-auto md:w-80 md:border-b-0 md:border-r">
-          <p className="text-sm text-zinc-600">
-            {status === "idle"
-              ? "Search for a city, address, or landmark to see places nearby."
-              : status === "loading"
-                ? "Searching..."
-                : status === "error"
-                  ? error
-                  : `Found ${results.length} place(s) within ${radiusMiles} mi of ${centerLabel}.`}
-          </p>
+        <aside className="h-56 shrink-0 border-b border-zinc-200 bg-white md:h-auto md:w-80 md:border-b-0 md:border-r">
+          <ResultsPanel
+            results={results}
+            status={status}
+            error={error}
+            radiusLabel={`${radiusMiles} mi of ${centerLabel ?? " the searched center"}`}
+          />
         </aside>
 
         <main className="relative flex-1 bg-zinc-100">

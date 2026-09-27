@@ -45,6 +45,13 @@ export function haversineMeters(a: LatLng, b: LatLng): number {
   return 2 * EARTH_RADIUS_METERS * Math.asin(Math.sqrt(h));
 }
 
+export function formatDistance(meters: number): string {
+  const miles = METERS_TO_MILES(meters);
+  return miles < 0.1
+    ? `${Math.round(meters)} m`
+    : `${miles.toFixed(miles < 10 ? 1 : 0)} mi`;
+}
+
 export function sortByDistance(results: PlaceResult[]): PlaceResult[] {
   return [...results].sort((a, b) => a.distanceMeters - b.distanceMeters);
 }

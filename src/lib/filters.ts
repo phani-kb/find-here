@@ -1,5 +1,3 @@
-import type { PlaceResult } from "@/lib/types";
-
 export const MIN_RATING_OPTIONS = [0, 3, 3.5, 4, 4.5] as const;
 
 export const MIN_REVIEW_OPTIONS = [
