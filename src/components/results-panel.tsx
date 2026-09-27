@@ -8,6 +8,8 @@ type ResultsPanelProps = {
   status: "idle" | "loading" | "ready" | "error";
   error: string | null;
   radiusLabel: string;
+  selectedId: string | null;
+  onSelectAction: (id: string) => void;
 };
 
 export default function ResultsPanel({
@@ -15,6 +17,8 @@ export default function ResultsPanel({
   status,
   error,
   radiusLabel,
+  selectedId,
+  onSelectAction,
 }: ResultsPanelProps) {
   const countLabel = `${results.length} place(s)`;
 
@@ -47,42 +51,51 @@ export default function ResultsPanel({
 
         {results.length > 0 && (
           <ul className="divide-y divide-zinc-100">
-            {results.map((place) => (
-              <li key={place.id}>
-                <div className="flex items-start gap-2 px-4 py-3">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-baseline justify-between gap-2">
-                      <span className="truncate text-sm font-medium">
-                        {place.name}
-                      </span>
-                      <span className="shrink-0 text-xs tabular-nums text-zinc-500">
-                        {formatDistance(place.distanceMeters)}
-                      </span>
-                    </div>
-                    {place.address && (
-                      <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">
-                        {place.address}
-                      </p>
-                    )}
-                    <div className="mt-1 flex items-center gap-3 text-xs text-zinc-500">
-                      {typeof place.rating === "number" && (
-                        <span>
-                          ★ {place.rating.toFixed(1)}
-                          {typeof place.userRatingCount === "number"
-                            ? ` (${place.userRatingCount})`
-                            : ""}
+            {results.map((place) => {
+              const selected = place.id === selectedId;
+              return (
+                <li key={place.id}>
+                  <button
+                    type="button"
+                    onClick={() => onSelectAction(place.id)}
+                    className={`flex w-full items-start gap-2 px-4 py-3 text-left transition-colors hover:bg-zinc-50 ${
+                      selected ? "bg-blue-50" : ""
+                    }`}
+                  >
+                    <div className="min-w-0 flex-1">
+                      <div className="flex items-baseline justify-between gap-2">
+                        <span className="truncate text-sm font-medium">
+                          {place.name}
                         </span>
-                      )}
-                      {place.primaryType && (
-                        <span className="truncate">
-                          {place.primaryType.replace(/_/g, " ")}
+                        <span className="shrink-0 text-xs tabular-nums text-zinc-500">
+                          {formatDistance(place.distanceMeters)}
                         </span>
+                      </div>
+                      {place.address && (
+                        <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">
+                          {place.address}
+                        </p>
                       )}
+                      <div className="mt-1 flex items-center gap-3 text-xs text-zinc-500">
+                        {typeof place.rating === "number" && (
+                          <span>
+                            ★ {place.rating.toFixed(1)}
+                            {typeof place.userRatingCount === "number"
+                              ? ` (${place.userRatingCount})`
+                              : ""}
+                          </span>
+                        )}
+                        {place.primaryType && (
+                          <span className="truncate">
+                            {place.primaryType.replace(/_/g, " ")}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                </div>
-              </li>
-            ))}
+                  </button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </div>

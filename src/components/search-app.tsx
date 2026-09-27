@@ -52,6 +52,7 @@ export default function SearchApp() {
   const [provider] = useState<Provider>(DEFAULT_PROVIDER);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceResult[]>([]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
@@ -73,6 +74,7 @@ export default function SearchApp() {
           controller.signal,
         );
         setResults(data.results);
+        setSelectedId(null);
         setStatus("ready");
       } catch (err) {
         if (isAbortError(err)) return;
@@ -108,7 +110,7 @@ export default function SearchApp() {
         throw new Error(data.error ?? "Location not found.");
       }
       updateCenter(data.center, data.label);
-      requestSearch(data.center, MILES_TO_METERS(radiusMiles));
+      await requestSearch(data.center, MILES_TO_METERS(radiusMiles));
     } catch (err) {
       setError(err instanceof Error ? err.message : "Location not found.");
       setStatus("error");
@@ -129,7 +131,7 @@ export default function SearchApp() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search a city, address, or landmark"
             aria-label="Search a city, address, or landmark"
-            className="min-w-48 flex-1 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+            className="min-w-48 flex-1 rounded-md border bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
           <button
             type="submit"
@@ -163,6 +165,8 @@ export default function SearchApp() {
             status={status}
             error={error}
             radiusLabel={`${radiusMiles} mi of ${centerLabel ?? " the searched center"}`}
+            selectedId={selectedId}
+            onSelectAction={setSelectedId}
           />
         </aside>
 
