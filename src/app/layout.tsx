@@ -14,8 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Find Here — radius search",
-  description:
-    "Search places within a chosen radius and see them in a list.",
+  description: "Search places within a chosen radius and see them in a list.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

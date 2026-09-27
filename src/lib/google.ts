@@ -83,8 +83,7 @@ async function requestGoogle(
   const data = (await response.json()) as GoogleResponse;
   if (!response.ok) {
     throw new ProviderError(
-      data.error?.message ??
-        `Places API request failed (${response.status}).`,
+      data.error?.message ?? `Places API request failed (${response.status}).`,
       response.status,
     );
   }
