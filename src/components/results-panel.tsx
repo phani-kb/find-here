@@ -68,7 +68,7 @@ export default function ResultsPanel({
           </ul>
         )}
 
-        {results.length > 0 && (
+        {status !== "loading" && results.length > 0 && (
           <ul className="divide-y divide-zinc-100">
             {results.map((place) => {
               const selected = place.id === selectedId;
