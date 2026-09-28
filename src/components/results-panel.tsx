@@ -5,6 +5,8 @@ import type { PlaceResult } from "@/lib/types";
 
 type ResultsPanelProps = {
   results: PlaceResult[];
+  totalCount: number;
+  filtersApplied: boolean;
   status: "idle" | "loading" | "ready" | "error";
   error: string | null;
   radiusLabel: string;
@@ -14,13 +16,18 @@ type ResultsPanelProps = {
 
 export default function ResultsPanel({
   results,
+  totalCount,
+  filtersApplied,
   status,
   error,
   radiusLabel,
   selectedId,
   onSelectAction,
 }: ResultsPanelProps) {
-  const countLabel = `${results.length} place(s)`;
+  const countLabel =
+    filtersApplied && results.length !== totalCount
+      ? `${results.length} of ${totalCount} place(s)`
+      : `${results.length} place(s)`;
 
   return (
     <div className="flex h-full flex-col">
@@ -44,9 +51,21 @@ export default function ResultsPanel({
 
         {status === "ready" && results.length === 0 && (
           <p className="p-4 text-sm text-zinc-500">
-            No places found in this circle. Try a larger radius or a different
-            center.
+            {filtersApplied && totalCount > 0
+              ? "No places match the minimum rating or review count. Lower the filters to see more."
+              : "No places found in this circle. Try a larger radius or a different center."}
           </p>
+        )}
+
+        {status === "loading" && (
+          <ul className="divide-y divide-zinc-100">
+            {Array.from({ length: 3 }).map((_, index) => (
+              <li key={index} className="animate-pulse space-y-2 p-4">
+                <div className="h-4 w-2/3 rounded bg-zinc-200" />
+                <div className="h-3 w-full rounded bg-zinc-100" />
+              </li>
+            ))}
+          </ul>
         )}
 
         {results.length > 0 && (
@@ -55,14 +74,16 @@ export default function ResultsPanel({
               const selected = place.id === selectedId;
               return (
                 <li key={place.id}>
-                  <button
-                    type="button"
-                    onClick={() => onSelectAction(place.id)}
-                    className={`flex w-full items-start gap-2 px-4 py-3 text-left transition-colors hover:bg-zinc-50 ${
+                  <div
+                    className={`flex items-start gap-2 transition-colors hover:bg-zinc-50 ${
                       selected ? "bg-blue-50" : ""
                     }`}
                   >
-                    <div className="min-w-0 flex-1">
+                    <button
+                      type="button"
+                      onClick={() => onSelectAction(place.id)}
+                      className="min-w-0 flex-1 px-4 py-3 text-left"
+                    >
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="truncate text-sm font-medium">
                           {place.name}
@@ -91,8 +112,18 @@ export default function ResultsPanel({
                           </span>
                         )}
                       </div>
-                    </div>
-                  </button>
+                    </button>
+                    {place.mapLink && (
+                      <a
+                        href={place.mapLink.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="mt-3 shrink-0 pr-4 text-xs font-medium text-blue-600 hover:underline"
+                      >
+                        {place.mapLink.label}
+                      </a>
+                    )}
+                  </div>
                 </li>
               );
             })}

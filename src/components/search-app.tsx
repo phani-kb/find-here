@@ -131,7 +131,7 @@ export default function SearchApp() {
             onChange={(event) => setQuery(event.target.value)}
             placeholder="Search a city, address, or landmark"
             aria-label="Search a city, address, or landmark"
-            className="min-w-48 flex-1 rounded-md border bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
+            className="min-w-48 max-w-lg flex-1 rounded-md border bg-white px-3 py-2 text-sm outline-none focus:border-blue-500"
           />
           <button
             type="submit"
@@ -162,9 +162,11 @@ export default function SearchApp() {
         <aside className="h-56 shrink-0 border-b border-zinc-200 bg-white md:h-auto md:w-80 md:border-b-0 md:border-r">
           <ResultsPanel
             results={results}
+            totalCount={results.length}
+            filtersApplied={false}
             status={status}
             error={error}
-            radiusLabel={`${radiusMiles} mi of ${centerLabel ?? " the searched center"}`}
+            radiusLabel={`${radiusMiles} mi of ${centerLabel ?? "the searched center"}`}
             selectedId={selectedId}
             onSelectAction={setSelectedId}
           />
