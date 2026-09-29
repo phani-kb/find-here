@@ -3,6 +3,7 @@
 import {
   AdvancedMarker,
   APIProvider,
+  Circle,
   Map,
   Pin,
 } from "@vis.gl/react-google-maps";
@@ -11,6 +12,7 @@ import type { LatLng, PlaceResult } from "@/lib/types";
 
 export type MapViewProps = {
   center: LatLng;
+  radiusMeters: number;
   results: PlaceResult[];
   selectedId: string | null;
   onSelectAction: (id: string) => void;
@@ -26,6 +28,7 @@ if (MAP_ID === FALLBACK_MAP_ID) {
 
 export default function MapView({
   center,
+  radiusMeters,
   results,
   selectedId,
   onSelectAction,
@@ -54,6 +57,16 @@ export default function MapView({
           gestureHandling="greedy"
           disableDefaultUI={false}
         >
+          <Circle
+            center={center}
+            radius={radiusMeters}
+            strokeColor="#2563eb"
+            strokeOpacity={0.9}
+            strokeWeight={2}
+            fillColor="#3b82f6"
+            fillOpacity={0.12}
+          />
+
           {results.map((place) => (
             <AdvancedMarker
               key={place.id}

@@ -186,6 +186,7 @@ export default function SearchApp() {
           {center ? (
             <MapView
               center={center}
+              radiusMeters={MILES_TO_METERS(radiusMiles)}
               results={results}
               selectedId={selectedId}
               onSelectAction={setSelectedId}
