@@ -1,14 +1,15 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useCallback, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
+import ResultsPanel from "@/components/results-panel";
 import {
   DEFAULT_RADIUS_MILES,
   MILES_TO_METERS,
   RADIUS_OPTIONS_MILES,
 } from "@/lib/geo";
-import ResultsPanel from "@/components/results-panel";
 import type {
   GeocodeResponse,
   LatLng,
@@ -18,6 +19,15 @@ import type {
   SearchResponse,
 } from "@/lib/types";
 import { DEFAULT_PROVIDER } from "@/lib/types";
+
+const MapView = dynamic(() => import("@/components/map-view"), {
+  ssr: false,
+  loading: () => (
+    <div className="grid h-full place-items-center bg-zinc-100 text-sm text-zinc-500">
+      Loading map...
+    </div>
+  ),
+});
 
 type Status = "idle" | "loading" | "ready" | "error";
 
@@ -173,9 +183,13 @@ export default function SearchApp() {
         </aside>
 
         <main className="relative flex-1 bg-zinc-100">
-          <div className="grid h-full place-items-center text-sm text-zinc-500">
-            Map Google/OSM
-          </div>
+          {center ? (
+            <MapView center={center} />
+          ) : (
+            <div className="grid h-full place-items-center text-sm text-zinc-500">
+              Map Google/OSM
+            </div>
+          )}
         </main>
       </div>
     </div>
