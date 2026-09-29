@@ -1,13 +1,16 @@
 "use client";
 
+import { useEffect } from "react";
 import {
   AdvancedMarker,
   APIProvider,
   Circle,
   Map,
   Pin,
+  useMap,
 } from "@vis.gl/react-google-maps";
 
+import { circleBounds } from "@/lib/geo";
 import type { LatLng, PlaceResult } from "@/lib/types";
 
 export type MapViewProps = {
@@ -24,6 +27,26 @@ if (MAP_ID === FALLBACK_MAP_ID) {
   console.warn(
     "NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID is not set; using DEMO_MAP_ID. Create a Map ID.",
   );
+}
+
+function FitToCircle({
+  center,
+  radiusMeters,
+}: {
+  center: LatLng;
+  radiusMeters: number;
+}) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!map) return;
+    map.fitBounds(
+      circleBounds(center, radiusMeters) as google.maps.LatLngBoundsLiteral,
+      48,
+    );
+  }, [map, center, radiusMeters]);
+
+  return null;
 }
 
 export default function MapView({
@@ -57,6 +80,8 @@ export default function MapView({
           gestureHandling="greedy"
           disableDefaultUI={false}
         >
+          <FitToCircle center={center} radiusMeters={radiusMeters} />
+
           <Circle
             center={center}
             radius={radiusMeters}

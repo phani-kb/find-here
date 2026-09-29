@@ -55,3 +55,16 @@ export function formatDistance(meters: number): string {
 export function sortByDistance(results: PlaceResult[]): PlaceResult[] {
   return [...results].sort((a, b) => a.distanceMeters - b.distanceMeters);
 }
+
+export function circleBounds(center: LatLng, radiusMeters: number) {
+  const latDelta = (radiusMeters / EARTH_RADIUS_METERS) * (180 / Math.PI);
+  const lngDelta =
+    latDelta / Math.max(Math.cos((center.lat * Math.PI) / 180), 0.01);
+
+  return {
+    north: center.lat + latDelta,
+    south: center.lat - latDelta,
+    east: center.lng + lngDelta,
+    west: center.lng - lngDelta,
+  };
+}
