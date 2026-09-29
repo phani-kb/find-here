@@ -184,7 +184,12 @@ export default function SearchApp() {
 
         <main className="relative flex-1 bg-zinc-100">
           {center ? (
-            <MapView center={center} />
+            <MapView
+              center={center}
+              results={results}
+              selectedId={selectedId}
+              onSelectAction={setSelectedId}
+            />
           ) : (
             <div className="grid h-full place-items-center text-sm text-zinc-500">
               Map Google/OSM
