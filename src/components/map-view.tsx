@@ -42,13 +42,7 @@ function FitToCircle({
 
   useEffect(() => {
     if (!map) return;
-    map.fitBounds(
-      circleBounds(
-        { lat, lng },
-        radiusMeters,
-      ) as google.maps.LatLngBoundsLiteral,
-      48,
-    );
+    map.fitBounds(circleBounds({ lat, lng }, radiusMeters), 48);
   }, [map, lat, lng, radiusMeters]);
 
   return null;
