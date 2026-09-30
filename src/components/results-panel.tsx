@@ -39,7 +39,7 @@ export default function ResultsPanel({
             : status === "loading"
               ? "Searching..."
               : status === "error"
-                ? "Search failed"
+                ? "Something went wrong"
                 : `${countLabel} within ${radiusLabel}`}
         </p>
       </div>

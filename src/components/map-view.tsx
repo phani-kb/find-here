@@ -105,6 +105,7 @@ export default function MapView({
 
           <AdvancedMarker
             position={center}
+            title="Search center"
             draggable
             onDragEnd={(event) => {
               const latLng = event.latLng;
