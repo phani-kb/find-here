@@ -112,6 +112,7 @@ export default function MapView({
             <AdvancedMarker
               key={place.id}
               position={place.location}
+              title={place.name}
               onClick={() => onSelectAction(place.id)}
             >
               <Pin
