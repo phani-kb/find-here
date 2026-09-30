@@ -22,13 +22,7 @@ export type MapViewProps = {
   onSelectAction: (id: string) => void;
 };
 
-const FALLBACK_MAP_ID = "DEMO_MAP_ID";
-const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID ?? FALLBACK_MAP_ID;
-if (MAP_ID === FALLBACK_MAP_ID) {
-  console.warn(
-    "NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID is not set; using DEMO_MAP_ID. Create a Map ID.",
-  );
-}
+const MAP_ID = process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID;
 
 function FitToCircle({
   center,
@@ -57,16 +51,9 @@ export default function MapView({
   onSelectAction,
 }: MapViewProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-
-  if (!apiKey) {
-    return (
-      <div className="grid h-full place-items-center bg-zinc-100 p-8 text-center text-sm text-zinc-600">
-        Set{" "}
-        <code className="mx-1 rounded bg-black/10 px-1">
-          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
-        </code>{" "}
-        to render the map.
-      </div>
+  if (!apiKey || !MAP_ID) {
+    throw new Error(
+      "Google Maps environment variables are missing. Restart the dev server after editing .env.local.",
     );
   }
 
