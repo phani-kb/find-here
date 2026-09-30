@@ -55,6 +55,24 @@ function isAbortError(error: unknown): boolean {
   return error instanceof DOMException && error.name === "AbortError";
 }
 
+function getCurrentPosition(): Promise<LatLng | null> {
+  return new Promise((resolve) => {
+    if (typeof navigator === "undefined" || !navigator.geolocation) {
+      resolve(null);
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      (position) =>
+        resolve({
+          lat: position.coords.latitude,
+          lng: position.coords.longitude,
+        }),
+      () => resolve(null),
+      { enableHighAccuracy: false, timeout: 8000, maximumAge: 60_000 },
+    );
+  });
+}
+
 export default function SearchApp() {
   const [center, setCenter] = useState<LatLng | null>(null);
   const [centerLabel, setCenterLabel] = useState<string | null>(null);
@@ -72,24 +90,32 @@ export default function SearchApp() {
   const controllerRef = useRef<AbortController | null>(null);
 
   const requestSearch = useCallback(
-    (nextCenter: LatLng, nextRadiusMeters: number, nextRadiusMiles: number) => {
+    async (
+      nextCenter: LatLng,
+      nextRadiusMeters: number,
+      nextRadiusMiles: number,
+    ) => {
       controllerRef.current?.abort();
       const controller = new AbortController();
       controllerRef.current = controller;
       setStatus("loading");
       setError(null);
       setSearchedRadiusMiles(nextRadiusMiles);
-      fetchSearch(nextCenter, nextRadiusMeters, provider, controller.signal)
-        .then((data) => {
-          setResults(data.results);
-          setSelectedId(null);
-          setStatus("ready");
-        })
-        .catch((err: unknown) => {
-          if (isAbortError(err)) return;
-          setError(err instanceof Error ? err.message : "Search failed.");
-          setStatus("error");
-        });
+      try {
+        const data = await fetchSearch(
+          nextCenter,
+          nextRadiusMeters,
+          provider,
+          controller.signal,
+        );
+        setResults(data.results);
+        setSelectedId(null);
+        setStatus("ready");
+      } catch (err) {
+        if (isAbortError(err)) return;
+        setError(err instanceof Error ? err.message : "Search failed.");
+        setStatus("error");
+      }
     },
     [provider],
   );
@@ -125,6 +151,22 @@ export default function SearchApp() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const handleUseMyLocation = async () => {
+    setBusy(true);
+    setError(null);
+    const location = await getCurrentPosition();
+    setBusy(false);
+
+    if (!location) {
+      setError("Could not get your location. Check your browser permissions.");
+      setStatus("error");
+      return;
+    }
+
+    updateCenter(location, "Your location");
+    requestSearch(location, MILES_TO_METERS(radiusMiles), radiusMiles);
   };
 
   return (
@@ -165,9 +207,18 @@ export default function SearchApp() {
           </select>
         </label>
 
+        <button
+          type="button"
+          onClick={handleUseMyLocation}
+          disabled={busy}
+          className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50"
+        >
+          Use my location
+        </button>
+
         {radiusMiles !== searchedRadiusMiles && status !== "idle" && (
           <span className="text-xs text-amber-600">
-            Press Search to apply the new radius.
+            New radius applies on the next search.
           </span>
         )}
       </header>

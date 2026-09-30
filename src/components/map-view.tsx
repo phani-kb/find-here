@@ -51,9 +51,27 @@ export default function MapView({
   onSelectAction,
 }: MapViewProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
-  if (!apiKey || !MAP_ID) {
-    throw new Error(
-      "Google Maps environment variables are missing. Restart the dev server after editing .env.local.",
+  if (!apiKey) {
+    return (
+      <div className="grid h-full place-items-center bg-zinc-100 p-8 text-center text-sm text-zinc-600">
+        Set{" "}
+        <code className="mx-1 rounded bg-black/10 px-1">
+          NEXT_PUBLIC_GOOGLE_MAPS_API_KEY
+        </code>{" "}
+        to render the map.
+      </div>
+    );
+  }
+
+  if (!MAP_ID) {
+    return (
+      <div className="grid h-full place-items-center bg-zinc-100 p-8 text-center text-sm text-zinc-600">
+        Set{" "}
+        <code className="mx-1 rounded bg-black/10 px-1">
+          NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID
+        </code>{" "}
+        to render pins — AdvancedMarker needs a real Map ID.
+      </div>
     );
   }
 
