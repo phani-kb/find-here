@@ -15,6 +15,7 @@ import type { LatLng, PlaceResult } from "@/lib/types";
 
 export type MapViewProps = {
   center: LatLng;
+  fitCenter: LatLng;
   radiusMeters: number;
   results: PlaceResult[];
   selectedId: string | null;
@@ -44,6 +45,7 @@ function FitToCircle({
 
 export default function MapView({
   center,
+  fitCenter,
   radiusMeters,
   results,
   selectedId,
@@ -89,7 +91,7 @@ export default function MapView({
             if (latLng) onCenterAction({ lat: latLng.lat, lng: latLng.lng });
           }}
         >
-          <FitToCircle center={center} radiusMeters={radiusMeters} />
+          <FitToCircle center={fitCenter} radiusMeters={radiusMeters} />
 
           <Circle
             center={center}

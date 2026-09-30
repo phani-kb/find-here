@@ -76,6 +76,7 @@ function getCurrentPosition(): Promise<LatLng | null> {
 export default function SearchApp() {
   const [center, setCenter] = useState<LatLng | null>(null);
   const [centerLabel, setCenterLabel] = useState<string | null>(null);
+  const [searchedCenter, setSearchedCenter] = useState<LatLng | null>(null);
   const [radiusMiles, setRadiusMiles] = useState<number>(DEFAULT_RADIUS_MILES);
   const [searchedRadiusMiles, setSearchedRadiusMiles] =
     useState<number>(DEFAULT_RADIUS_MILES);
@@ -101,6 +102,7 @@ export default function SearchApp() {
       setStatus("loading");
       setError(null);
       setSearchedRadiusMiles(nextRadiusMiles);
+      setSearchedCenter(nextCenter);
       try {
         const data = await fetchSearch(
           nextCenter,
@@ -241,13 +243,13 @@ export default function SearchApp() {
           {center ? (
             <MapView
               center={center}
+              fitCenter={searchedCenter ?? center}
               radiusMeters={MILES_TO_METERS(searchedRadiusMiles)}
               results={results}
               selectedId={selectedId}
               onCenterAction={(next) => {
                 setCenter(next);
                 setCenterLabel(null);
-                requestSearch(next, MILES_TO_METERS(radiusMiles), radiusMiles);
               }}
               onSelectAction={setSelectedId}
             />

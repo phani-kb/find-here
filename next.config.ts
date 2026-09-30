@@ -6,10 +6,18 @@ const REQUIRED_ENV_VARS = [
   "NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID",
 ] as const;
 
-const missing = REQUIRED_ENV_VARS.filter((name) => !process.env[name]);
-if (missing.length > 0) {
+function isPlaceholder(value: string): boolean {
+  return /^<.*>$/.test(value.trim());
+}
+
+const invalid = REQUIRED_ENV_VARS.filter((name) => {
+  const value = process.env[name];
+  return !value || isPlaceholder(value);
+});
+
+if (invalid.length > 0) {
   throw new Error(
-    `Missing required environment variable(s): ${missing.join(", ")}. Copy .env.example to .env.local and fill it in.`,
+    `Missing or placeholder value for: ${invalid.join(", ")}. Copy .env.example to .env.local and fill in real values.`,
   );
 }
 
