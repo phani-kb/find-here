@@ -80,14 +80,25 @@ async function requestGoogle(
     body: JSON.stringify(body),
     cache: "no-store",
   });
-  const data = (await response.json()) as GoogleResponse;
+  const data = await parseGoogleResponse(response);
   if (!response.ok) {
     throw new ProviderError(
-      data.error?.message ?? `Places API request failed (${response.status}).`,
+      data.error?.message ??
+        `Places API request failed (${response.status}${response.statusText ? ` ${response.statusText}` : ""}).`,
       response.status,
     );
   }
   return data;
+}
+
+async function parseGoogleResponse(
+  response: Response,
+): Promise<GoogleResponse> {
+  try {
+    return (await response.json()) as GoogleResponse;
+  } catch {
+    return {};
+  }
 }
 
 // Geocoding API returns coordinates + address but not a label unlike the places text search
