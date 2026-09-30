@@ -59,6 +59,8 @@ export default function SearchApp() {
   const [center, setCenter] = useState<LatLng | null>(null);
   const [centerLabel, setCenterLabel] = useState<string | null>(null);
   const [radiusMiles, setRadiusMiles] = useState<number>(DEFAULT_RADIUS_MILES);
+  const [searchedRadiusMiles, setSearchedRadiusMiles] =
+    useState<number>(DEFAULT_RADIUS_MILES);
   const [provider] = useState<Provider>(DEFAULT_PROVIDER);
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<PlaceResult[]>([]);
@@ -70,31 +72,27 @@ export default function SearchApp() {
   const controllerRef = useRef<AbortController | null>(null);
 
   const requestSearch = useCallback(
-    async (nextCenter: LatLng, nextRadiusMeters: number) => {
+    (nextCenter: LatLng, nextRadiusMeters: number, nextRadiusMiles: number) => {
       controllerRef.current?.abort();
       const controller = new AbortController();
       controllerRef.current = controller;
       setStatus("loading");
       setError(null);
-      try {
-        const data = await fetchSearch(
-          nextCenter,
-          nextRadiusMeters,
-          provider,
-          controller.signal,
-        );
-        setResults(data.results);
-        setSelectedId(null);
-        setStatus("ready");
-      } catch (err) {
-        if (isAbortError(err)) return;
-        setError(err instanceof Error ? err.message : "Search failed.");
-        setStatus("error");
-      }
+      setSearchedRadiusMiles(nextRadiusMiles);
+      fetchSearch(nextCenter, nextRadiusMeters, provider, controller.signal)
+        .then((data) => {
+          setResults(data.results);
+          setSelectedId(null);
+          setStatus("ready");
+        })
+        .catch((err: unknown) => {
+          if (isAbortError(err)) return;
+          setError(err instanceof Error ? err.message : "Search failed.");
+          setStatus("error");
+        });
     },
     [provider],
   );
-
   const updateCenter = useCallback((next: LatLng, label: string) => {
     setCenter(next);
     setCenterLabel(label);
@@ -120,7 +118,7 @@ export default function SearchApp() {
         throw new Error(data.error ?? "Location not found.");
       }
       updateCenter(data.center, data.label);
-      await requestSearch(data.center, MILES_TO_METERS(radiusMiles));
+      requestSearch(data.center, MILES_TO_METERS(radiusMiles), radiusMiles);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Location not found.");
       setStatus("error");
@@ -166,6 +164,12 @@ export default function SearchApp() {
             ))}
           </select>
         </label>
+
+        {radiusMiles !== searchedRadiusMiles && status !== "idle" && (
+          <span className="text-xs text-amber-600">
+            Press Search to apply the new radius.
+          </span>
+        )}
       </header>
 
       <div className="flex flex-1 flex-col overflow-hidden md:flex-row">
@@ -176,7 +180,7 @@ export default function SearchApp() {
             filtersApplied={false}
             status={status}
             error={error}
-            radiusLabel={`${radiusMiles} mi of ${centerLabel ?? "the searched center"}`}
+            radiusLabel={`${searchedRadiusMiles} mi of ${centerLabel ?? "the searched center"}`}
             selectedId={selectedId}
             onSelectAction={setSelectedId}
           />
@@ -186,9 +190,14 @@ export default function SearchApp() {
           {center ? (
             <MapView
               center={center}
-              radiusMeters={MILES_TO_METERS(radiusMiles)}
+              radiusMeters={MILES_TO_METERS(searchedRadiusMiles)}
               results={results}
               selectedId={selectedId}
+              onCenterAction={(next) => {
+                setCenter(next);
+                setCenterLabel(null);
+                requestSearch(next, MILES_TO_METERS(radiusMiles), radiusMiles);
+              }}
               onSelectAction={setSelectedId}
             />
           ) : (

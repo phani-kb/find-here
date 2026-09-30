@@ -18,6 +18,7 @@ export type MapViewProps = {
   radiusMeters: number;
   results: PlaceResult[];
   selectedId: string | null;
+  onCenterAction: (center: LatLng) => void;
   onSelectAction: (id: string) => void;
 };
 
@@ -37,14 +38,18 @@ function FitToCircle({
   radiusMeters: number;
 }) {
   const map = useMap();
+  const { lat, lng } = center;
 
   useEffect(() => {
     if (!map) return;
     map.fitBounds(
-      circleBounds(center, radiusMeters) as google.maps.LatLngBoundsLiteral,
+      circleBounds(
+        { lat, lng },
+        radiusMeters,
+      ) as google.maps.LatLngBoundsLiteral,
       48,
     );
-  }, [map, center, radiusMeters]);
+  }, [map, lat, lng, radiusMeters]);
 
   return null;
 }
@@ -54,6 +59,7 @@ export default function MapView({
   radiusMeters,
   results,
   selectedId,
+  onCenterAction,
   onSelectAction,
 }: MapViewProps) {
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
@@ -79,6 +85,10 @@ export default function MapView({
           defaultZoom={12}
           gestureHandling="greedy"
           disableDefaultUI={false}
+          onClick={(event) => {
+            const latLng = event.detail.latLng;
+            if (latLng) onCenterAction({ lat: latLng.lat, lng: latLng.lng });
+          }}
         >
           <FitToCircle center={center} radiusMeters={radiusMeters} />
 
@@ -91,6 +101,18 @@ export default function MapView({
             fillColor="#3b82f6"
             fillOpacity={0.12}
           />
+
+          <AdvancedMarker
+            position={center}
+            draggable
+            onDragEnd={(event) => {
+              const latLng = event.latLng;
+              if (latLng)
+                onCenterAction({ lat: latLng.lat(), lng: latLng.lng() });
+            }}
+          >
+            <Pin background="#2563eb" borderColor="#1e40af" glyphColor="#fff" />
+          </AdvancedMarker>
 
           {results.map((place) => (
             <AdvancedMarker
