@@ -19,6 +19,14 @@ import type {
   SearchResponse,
 } from "@/lib/types";
 import { DEFAULT_PROVIDER } from "@/lib/types";
+import {
+  DEFAULT_FILTERS,
+  MIN_RATING_OPTIONS,
+  MIN_REVIEW_OPTIONS,
+  filterPlaces,
+  filtersActive,
+  type SearchFilters,
+} from "@/lib/filters";
 
 const MapView = dynamic(() => import("@/components/map-view"), {
   ssr: false,
@@ -82,13 +90,16 @@ export default function SearchApp() {
     useState<number>(DEFAULT_RADIUS_MILES);
   const [provider] = useState<Provider>(DEFAULT_PROVIDER);
   const [query, setQuery] = useState("");
-  const [results, setResults] = useState<PlaceResult[]>([]);
+  const [rawResults, setRawResults] = useState<PlaceResult[]>([]);
+  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
   const controllerRef = useRef<AbortController | null>(null);
+
+  const results = filterPlaces(rawResults, filters);
 
   const requestSearch = useCallback(
     async (
@@ -110,7 +121,7 @@ export default function SearchApp() {
           provider,
           controller.signal,
         );
-        setResults(data.results);
+        setRawResults(data.results);
         setSelectedId(null);
         setStatus("ready");
       } catch (err) {
@@ -209,6 +220,46 @@ export default function SearchApp() {
           </select>
         </label>
 
+        <label className="flex items-center gap-2 text-sm">
+          <span className="text-zinc-500">Min rating</span>
+          <select
+            value={filters.minRating}
+            onChange={(event) =>
+              setFilters((prev) => ({
+                ...prev,
+                minRating: Number(event.target.value),
+              }))
+            }
+            className="rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm"
+          >
+            {MIN_RATING_OPTIONS.map((rating) => (
+              <option key={rating} value={rating}>
+                {rating === 0 ? "Any" : `${rating.toFixed(1)}+`}
+              </option>
+            ))}
+          </select>
+        </label>
+
+        <label className="flex items-center gap-2 text-sm">
+          <span className="text-zinc-500">Min reviews</span>
+          <select
+            value={filters.minReviews}
+            onChange={(event) =>
+              setFilters((prev) => ({
+                ...prev,
+                minReviews: Number(event.target.value),
+              }))
+            }
+            className="rounded-md border border-zinc-300 bg-white px-2 py-2 text-sm"
+          >
+            {MIN_REVIEW_OPTIONS.map((reviews) => (
+              <option key={reviews} value={reviews}>
+                {reviews === 0 ? "Any" : `${reviews}+`}
+              </option>
+            ))}
+          </select>
+        </label>
+
         <button
           type="button"
           onClick={handleUseMyLocation}
@@ -229,8 +280,8 @@ export default function SearchApp() {
         <aside className="h-56 shrink-0 border-b border-zinc-200 bg-white md:h-auto md:w-80 md:border-b-0 md:border-r">
           <ResultsPanel
             results={results}
-            totalCount={results.length}
-            filtersApplied={false}
+            totalCount={rawResults.length}
+            filtersApplied={filtersActive(filters)}
             status={status}
             error={error}
             radiusLabel={`${searchedRadiusMiles} mi of ${centerLabel ?? "the searched center"}`}
