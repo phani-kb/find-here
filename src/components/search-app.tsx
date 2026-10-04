@@ -42,10 +42,14 @@ type Status = "idle" | "loading" | "ready" | "error";
 async function fetchSearch(
   center: LatLng,
   radiusMeters: number,
+  keyword: string,
+  minRating: number,
   provider: Provider,
   signal: AbortSignal,
 ): Promise<SearchResponse> {
   const body: SearchRequest = { center, radiusMeters, provider };
+  if (keyword) body.keyword = keyword;
+  if (keyword && minRating > 0) body.minRating = minRating;
   const response = await fetch("/api/search", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -90,6 +94,8 @@ export default function SearchApp() {
     useState<number>(DEFAULT_RADIUS_MILES);
   const [provider] = useState<Provider>(DEFAULT_PROVIDER);
   const [query, setQuery] = useState("");
+  const [keyword, setKeyword] = useState("");
+  const [keywordDraft, setKeywordDraft] = useState("");
   const [rawResults, setRawResults] = useState<PlaceResult[]>([]);
   const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -106,6 +112,8 @@ export default function SearchApp() {
       nextCenter: LatLng,
       nextRadiusMeters: number,
       nextRadiusMiles: number,
+      nextKeyword: string,
+      nextMinRating: number,
     ) => {
       controllerRef.current?.abort();
       const controller = new AbortController();
@@ -118,6 +126,8 @@ export default function SearchApp() {
         const data = await fetchSearch(
           nextCenter,
           nextRadiusMeters,
+          nextKeyword,
+          nextMinRating,
           provider,
           controller.signal,
         );
@@ -157,7 +167,13 @@ export default function SearchApp() {
         throw new Error(data.error ?? "Location not found.");
       }
       updateCenter(data.center, data.label);
-      requestSearch(data.center, MILES_TO_METERS(radiusMiles), radiusMiles);
+      requestSearch(
+        data.center,
+        MILES_TO_METERS(radiusMiles),
+        radiusMiles,
+        keyword,
+        filters.minRating,
+      );
     } catch (err) {
       setError(err instanceof Error ? err.message : "Location not found.");
       setStatus("error");
@@ -179,7 +195,27 @@ export default function SearchApp() {
     }
 
     updateCenter(location, "Your location");
-    requestSearch(location, MILES_TO_METERS(radiusMiles), radiusMiles);
+    requestSearch(
+      location,
+      MILES_TO_METERS(radiusMiles),
+      radiusMiles,
+      keyword,
+      filters.minRating,
+    );
+  };
+
+  const submitKeyword = (next: string) => {
+    if (!center) return;
+    const trimmed = next.trim();
+    setKeyword(trimmed);
+    setKeywordDraft(trimmed);
+    requestSearch(
+      center,
+      MILES_TO_METERS(radiusMiles),
+      radiusMiles,
+      trimmed,
+      filters.minRating,
+    );
   };
 
   return (
@@ -203,6 +239,39 @@ export default function SearchApp() {
           >
             Search
           </button>
+        </form>
+
+        <form
+          onSubmit={(event) => {
+            event.preventDefault();
+            submitKeyword(keywordDraft);
+          }}
+          className="flex items-center gap-1"
+        >
+          <input
+            type="text"
+            value={keywordDraft}
+            onChange={(event) => setKeywordDraft(event.target.value)}
+            placeholder="Keyword, e.g. restaurant"
+            aria-label="Filter by keyword"
+            className="w-44 rounded-md border border-zinc-300 bg-white px-3 py-2 text-sm outline-none"
+          />
+          <button
+            type="submit"
+            disabled={busy || !center}
+            className="rounded-md border border-zinc-300 px-3 py-2 text-sm font-medium hover:bg-zinc-50 disabled:opacity-50"
+          >
+            Filter
+          </button>
+          {keyword && (
+            <button
+              type="button"
+              onClick={() => submitKeyword("")}
+              className="rounded-md px-2 py-2 text-sm text-zinc-500 hover:bg-zinc-100"
+            >
+              Clear
+            </button>
+          )}
         </form>
 
         <label className="flex items-center gap-2 text-sm">
