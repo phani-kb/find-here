@@ -1,7 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { FormEvent } from "react";
 
 import ResultsPanel from "@/components/results-panel";
@@ -27,6 +27,7 @@ import {
   filtersActive,
   type SearchFilters,
 } from "@/lib/filters";
+import { readUrlState, writeUrlState } from "@/lib/url-state";
 
 const MapView = dynamic(() => import("@/components/map-view"), {
   ssr: false,
@@ -86,18 +87,35 @@ function getCurrentPosition(): Promise<LatLng | null> {
 }
 
 export default function SearchApp() {
-  const [center, setCenter] = useState<LatLng | null>(null);
-  const [centerLabel, setCenterLabel] = useState<string | null>(null);
+  const [urlState] = useState(() =>
+    readUrlState(typeof window === "undefined" ? "" : window.location.search, {
+      center: { lat: 0, lng: 0 },
+      radiusMiles: DEFAULT_RADIUS_MILES,
+      filters: DEFAULT_FILTERS,
+      keyword: "",
+      provider: DEFAULT_PROVIDER,
+    }),
+  );
+
+  const [center, setCenter] = useState<LatLng | null>(
+    urlState.hasCenter ? urlState.state.center : null,
+  );
+  const [centerLabel, setCenterLabel] = useState<string | null>(
+    urlState.hasCenter ? "Shared location" : null,
+  );
   const [searchedCenter, setSearchedCenter] = useState<LatLng | null>(null);
-  const [radiusMiles, setRadiusMiles] = useState<number>(DEFAULT_RADIUS_MILES);
-  const [searchedRadiusMiles, setSearchedRadiusMiles] =
-    useState<number>(DEFAULT_RADIUS_MILES);
-  const [provider] = useState<Provider>(DEFAULT_PROVIDER);
+  const [radiusMiles, setRadiusMiles] = useState<number>(
+    urlState.state.radiusMiles,
+  );
+  const [searchedRadiusMiles, setSearchedRadiusMiles] = useState<number>(
+    urlState.state.radiusMiles,
+  );
+  const [provider] = useState<Provider>(urlState.state.provider);
   const [query, setQuery] = useState("");
-  const [keyword, setKeyword] = useState("");
-  const [keywordDraft, setKeywordDraft] = useState("");
+  const [keyword, setKeyword] = useState(urlState.state.keyword);
+  const [keywordDraft, setKeywordDraft] = useState(urlState.state.keyword);
   const [rawResults, setRawResults] = useState<PlaceResult[]>([]);
-  const [filters, setFilters] = useState<SearchFilters>(DEFAULT_FILTERS);
+  const [filters, setFilters] = useState<SearchFilters>(urlState.state.filters);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [status, setStatus] = useState<Status>("idle");
   const [error, setError] = useState<string | null>(null);
@@ -217,6 +235,33 @@ export default function SearchApp() {
       filters.minRating,
     );
   };
+
+  useEffect(() => {
+    if (!urlState.hasCenter) return;
+    void requestSearch(
+      urlState.state.center,
+      MILES_TO_METERS(urlState.state.radiusMiles),
+      urlState.state.radiusMiles,
+      urlState.state.keyword,
+      urlState.state.filters.minRating,
+    );
+  }, []);
+
+  useEffect(() => {
+    if (!center) return;
+    const params = writeUrlState({
+      center,
+      radiusMiles,
+      filters,
+      keyword,
+      provider,
+    });
+    window.history.replaceState(
+      null,
+      "",
+      `${window.location.pathname}?${params}`,
+    );
+  }, [center, radiusMiles, filters, keyword, provider]);
 
   return (
     <div className="flex h-dvh flex-col">
