@@ -1,10 +1,15 @@
 import { NextResponse } from "next/server";
 
+import { enforceRateLimit } from "@/lib/api-guard";
 import { isValidLatLng, MAX_RADIUS_METERS } from "@/lib/geo";
 import { searchGoogle } from "@/lib/google";
+import { SEARCH_RATE_LIMIT } from "@/lib/rate-limit";
 import { ProviderError, type SearchRequest } from "@/lib/types";
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit(request, "search", SEARCH_RATE_LIMIT);
+  if (limited) return limited;
+
   let body: Partial<SearchRequest>;
   try {
     body = (await request.json()) as Partial<SearchRequest>;

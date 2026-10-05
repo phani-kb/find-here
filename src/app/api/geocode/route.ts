@@ -1,9 +1,14 @@
 import { NextResponse } from "next/server";
 
+import { enforceRateLimit } from "@/lib/api-guard";
 import { geocodeGoogle } from "@/lib/google";
+import { GEOCODE_RATE_LIMIT } from "@/lib/rate-limit";
 import { ProviderError, type GeocodeRequest } from "@/lib/types";
 
 export async function POST(request: Request) {
+  const limited = enforceRateLimit(request, "geocode", GEOCODE_RATE_LIMIT);
+  if (limited) return limited;
+
   let body: Partial<GeocodeRequest>;
   try {
     body = (await request.json()) as Partial<GeocodeRequest>;
