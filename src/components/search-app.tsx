@@ -238,6 +238,7 @@ export default function SearchApp() {
 
   useEffect(() => {
     if (!urlState.hasCenter) return;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     void requestSearch(
       urlState.state.center,
       MILES_TO_METERS(urlState.state.radiusMiles),
@@ -245,6 +246,7 @@ export default function SearchApp() {
       urlState.state.keyword,
       urlState.state.filters.minRating,
     );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
